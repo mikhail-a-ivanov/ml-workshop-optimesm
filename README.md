@@ -8,7 +8,7 @@ Irrespective of the selected approach, the first step is to download the `ml_wor
 
 ## Google Colab setup
 
-Go to https://colab.research.google.com/ and upload `ml_workshop_optimesm.ipynb` jupyter notebook there. Press the `Upload` button, then `Browse`, and select the notebook. After uploading the notebook, you can continue following the instructions in the notebook.
+Go to https://colab.research.google.com and upload `ml_workshop_optimesm.ipynb` jupyter notebook there. Press the `Upload` button, then `Browse`, and select the notebook. After uploading the notebook, you can continue following the instructions in the notebook.
 
 ## Local setup
 
@@ -23,5 +23,11 @@ After the installation is done, set up the environment:
 Activate the environment and start the jupyter lab:
 
 `mamba activate ml-workshop`
+
+Install `cdo`:
+
+`mamba install cdo`
+
+After it is done, start the jupyter notebook, and continue following the instructions there:
 
 `jupyter-lab`
