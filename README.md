@@ -1,33 +1,53 @@
-# ML-downscaling workshop for the OptimESM General Assembly
+# Detex—an AI-based detector of extreme events
 
-During this workshop we are going to train a deep learning climate downscaling model based on a UNet architecture using SSP3.7-0 data for the 2015-2100 period centered around Denmark. We are going to use `EC-Earth3-Veg` global climate model data, interpolated to 1° resolution, as the low resolution input data (**predictors**), and `HCLIM43-ALADIN` regional climate model data, interpolated to 0.1° resolution, as the high resolution output data (**target**). 
+## When running on Alvis, make sure that the `HDF5_USE_FILE_LOCKING` variable is set to false (otherwise some files cannot be read or written!):
 
-The easiest way to train the model, run the predictions and the analysis is through the Google Colab service (a Google account is needed, but the service itself is free), as it provides the Python environment with a GPU access for a limited time. However, it is possible to run the workshop locally, albeit with more steps  to setup the environment.
+`export HDF5_USE_FILE_LOCKING=FALSE`
 
-Irrespective of the selected approach, the first step is to download the `ml_workshop_optimesm.ipynb` jupyter notebook.
+The command above can be placed in the `~/.basrhc` file or in the slurm scripts
 
-## Google Colab setup
+## Running `detex` training with a container
 
-Go to https://colab.research.google.com and upload `ml_workshop_optimesm.ipynb` jupyter notebook there. Press the `Upload` button, then `Browse`, and select the notebook. After uploading the notebook, you can continue following the instructions in the notebook.
+Use the following command to run `detex` training with a container (assuming `container.sif` is in the current directory):
 
-## Local setup
+`apptainer exec container.sif python training.py -c training-config.toml -d cuda -n 16`
 
-If you don't have a package/environment manager for Python (e.g. `conda`, `mamba`) it is advised to get one and create a separate Python environment for this project.
+`-c` flag is used to specify the path to the TOML configuration file, `-d` flag specifies the device (`cuda` by default). If several CUDA GPUs are present, use `cuda:GPU_id`, where `GPU_id` starts with 0. `-n` flag specifies the number of CPU cores used for the data loading (it is recommended to use as many CPU cores as possible).
 
-Follow the installation instructions for `mamba` here: https://github.com/conda-forge/miniforge
+The container with a ready-to-use Python environment (including pytorch, jupyter, iris, xarray, ncview and cdo) can be found here:
 
-After the installation is done, set up the environment:
+`/mimer/NOBACKUP/groups/mlhighres/projects/downscaling/containers/mldown.sif`
 
-`mamba create -n ml-workshop xarray matplotlib jupyter pandas numpy cartopy palettable`
+When running the applications with the container, it can be convenient to link it to your home directory:
 
-Activate the environment and start the jupyter lab:
+`ln -s /mimer/NOBACKUP/groups/mlhighres/projects/downscaling/containers/mldown.sif ~/mldown.sif`
 
-`mamba activate ml-workshop`
+Then, one can run the following without the need to include the full path:
 
-Install `cdo`:
+`apptainer exec ~/mldown.sif python training.py -c training-config.toml -d cuda -n 16`
 
-`mamba install cdo`
+## Inference and evaluation
 
-After it is done, start the jupyter notebook, and continue following the instructions there:
+The training produces only the model weights, which can be later used by an `inference.py` script to produce the prediction netCDF files:
 
-`jupyter-lab`
+`apptainer exec ~/mldown.sif python inference.py -c inference-config.toml -d cuda -n 16`
+
+The predictions can be assesed with the `evaluation.py` script that does not require GPU to run:
+
+`apptainer exec ~/mldown.sif python evaluation.py -c evaluation-config.toml -n 16`
+
+The results of the inference and evaluation can be viewed with `ncview`, which can be called from the container too:
+
+`apptainer exec ~/mldown.sif ncview cube.nc`
+
+## Slurm scripts
+
+The slurm script `detex-launch.sh` is updated and ready to run on alvis with the `mldown.sif` container (make sure to link the container to your home directory or use the commented `apptainer` line instead). The launch script chains the training, inference and evaluation in a single job, so make sure that the configuration files are compatible, e.g. the model hyperparameters are consistent and the file paths are correct.
+
+One can, of course, run training, inference and evaluation separately, by commenting out or deleting unnecessary run commands.
+
+To run the launch script use `sbatch detex-launch.sh`. For more info see https://slurm.schedmd.com/quickstart.html.
+
+## Learning rate finder
+
+`lr_finder.ipynb` jupyter notebook contains a script that helps finding an optimal learning rate for the specified hyperparameters. This is done by running several training iterations with linearly increasing learning rate, and measuring the gradient of the loss function. The output of `lr_finder` can be used as a learning rate parameter in the `training-config.toml`. To run the jupyter notebook, start a jupyter server on Alvis within the following container: `/mimer/NOBACKUP/groups/mlhighres/projects/downscaling/containers/mldown-lr-finder.sif`. 
