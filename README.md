@@ -24,6 +24,6 @@ Activate the environment and start the jupyter lab:
 
 `mamba activate ml-workshop`
 
-After it is done, start the jupyter notebook, and continue following the instructions there:
+After it is done, start the jupyter notebook, select the notebook, and continue following the instructions there:
 
 `jupyter-lab`
